@@ -1,4 +1,6 @@
 target/
 .idea
+scala-naivecoin.ipr
+scala-naivecoin.iws
 *.class
 *.log
