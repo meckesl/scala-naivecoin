@@ -25,6 +25,9 @@ case class Block(
 
 }
 
+abstract class BlockError
+case class HashDoesNotMatch() extends BlockError
+
 object Block {
 
   val genesisBlock = Block(0, "", 0, "")
@@ -35,24 +38,25 @@ object Block {
       new java.math.BigInteger(1,
         sha256.digest(text.getBytes("UTF-8"))))
 
-  def validate(_old: Block, _new: Block): Option[Block] =
+  def validate(_old: Block, _new: Block): Either[BlockError, Block] =
     (_new.previousHash.equals(_old.hash)) match {
-      case true => Some(_new)
-      case _ => None
+      case true => Right(_new)
+      case _ => Left(HashDoesNotMatch())
     }
 
   def main(args: Array[String]): Unit = {
 
-    val block1 = Block.genesisBlock.generate("lol")
-    val block2 = block1.generate("pouet")
-    val block3 = block2.generate("pouet pouet")
-    val block4 = block1.generate("noo")
-    val blockChain: Seq[Block] = Seq(block1, block2, block3, block4)
+    val block1 = Block.genesisBlock.generate("genesis")
+    val block2 = block1.generate("one")
+    val block3 = block2.generate("then two")
+    val block4 = block1.generate("bad block")
+    val block5 = block3.generate("good but bad index block")
+    val blockChain: Seq[Block] = Seq(block1, block2, block3, block4, block5)
 
-    val validatedBlockChain = blockChain.foldLeft(Seq[Option[Block]]())((acc, b) => {
+    val validatedBlockChain = blockChain.foldLeft(Seq[Either[BlockError, Block]]())((acc, b) => {
       acc match {
-        case x::xs if x.nonEmpty => validate(x.get,b) +: acc
-        case _ => acc:+validate(genesisBlock, b)
+        case x::xs if x.isRight => validate(x.getOrElse(genesisBlock),b) +: acc
+        case _ => validate(genesisBlock, b) +: acc
       }
     })
 
